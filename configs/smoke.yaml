@@ -1,0 +1,56 @@
+seed: 4444
+
+data:
+  audio_root: /media/huy/data1tb/huy/data_vox/audio
+  train_manifest: manifests/train.txt
+  val_manifest: manifests/val.txt
+  sample_rate: 24000
+  train_num_samples: 16384
+  val_num_samples: 32768
+  batch_size: 16
+  num_workers: 2
+  max_decode_retries: 8
+
+model:
+  n_fft: 1024
+  hop_length: 256
+  n_mels: 100
+  dim: 512
+  intermediate_dim: 1536
+  num_layers: 8
+
+training:
+  max_steps: 4
+  learning_rate: 0.0005
+  betas: [0.8, 0.9]
+  warmup_steps: 0
+  pretrain_mel_steps: 1
+  mel_loss_coeff: 45.0
+  mrd_loss_coeff: 0.1
+  precision: bf16
+  grad_clip_norm: 1000.0
+  log_every_steps: 1
+  audio_every_steps: 4
+  validate_every_steps: 1
+  val_batches: 1
+  checkpoint_every_steps: 2
+  keep_last_checkpoints: 1
+  save_top_k_best: 3
+  output_dir: checkpoints/smoke
+  log_dir: logs/smoke
+
+tone_aware:
+  freq_weighted_stft: false
+  stft_loss_coeff: 1.0
+  stft_low_hz: 1000.0
+  stft_w_low: 3.0
+  stft_fft_sizes: [512, 1024, 2048]
+  use_cqt_disc: false
+  cqt_loss_coeff: 0.1
+  cqt_fm_coeff: 0.1
+  cqt_fmin: 80.0
+  cqt_n_bins: 48
+  cqt_bins_per_octave: 24
+  use_tone_loss: false
+  tone_classifier_ckpt: checkpoints/tone_classifier/main.pt
+  tone_loss_coeff: 1.0

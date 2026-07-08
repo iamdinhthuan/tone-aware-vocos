@@ -1,0 +1,9 @@
+{
+  "n_syllables": 656,
+  "acc_baseline": 0.6829268292682927,
+  "acc_plus_cb": 0.6737804878048781,
+  "n01_cb_only_correct": 33,
+  "n10_base_only_correct": 39,
+  "mcnemar_p": 0.555997717760971,
+  "n_sentences": 37
+}

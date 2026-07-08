@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Environments
+.venv/
+venv/
+.env
+
+# Training artifacts / data (never commit — large or non-redistributable)
+checkpoints/
+logs/
+run_logs/
+manifests/
+exported_vocoders/
+mfa_corpus/
+mfa_aligned/
+mfa_tmp*/
+ttscond_mfa_*/
+eval_reports/
+eval_samples/
+listening_test/
+human_eval_*/
+zipvoice_*/
+*.wav
+*.flac
+*.mp3
+*.pt
+*.ckpt
+*.tar
+*.zip
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+.gradio/
+.claude/

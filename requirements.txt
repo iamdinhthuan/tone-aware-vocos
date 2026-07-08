@@ -1,0 +1,10 @@
+vocos==0.1.0
+torch>=2.4
+torchaudio>=2.4
+PyYAML>=6.0
+tensorboard>=2.14
+tqdm>=4.66
+nnAudio>=0.3.3
+praatio>=6.2
+soundfile>=0.12
+librosa>=0.10
