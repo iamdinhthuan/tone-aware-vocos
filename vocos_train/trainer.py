@@ -355,7 +355,7 @@ def train(config: dict, resume: str | None = None, device_name: str | None = Non
                 step_path = output_dir / f"step_{step}.pt"
                 atomic_save(state, step_path)
                 atomic_symlink(step_path.name, output_dir / "last.pt")
-                prune_checkpoints(output_dir, int(train_cfg["keep_last_checkpoints"]))
+                prune_checkpoints(output_dir, int(train_cfg.get("keep_last_checkpoints", 3)))
                 writer.flush()
     except KeyboardInterrupt:
         state = checkpoint_state(system, optimizer_g, optimizer_d, scheduler_g, scheduler_d, scaler, step, best_val, config)
