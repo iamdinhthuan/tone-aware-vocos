@@ -19,7 +19,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-SP = Path("/tmp/claude-1000/-data-nvme-vocos-training/54daf6aa-8d85-49dc-a090-57111c530f8f/scratchpad")
+SP = Path(__file__).resolve().parent
 FIG = Path("/data_nvme/vocos_training/paper/figures")
 FIG.mkdir(parents=True, exist_ok=True)
 
@@ -73,8 +73,8 @@ def save(fig, name):
 
 
 def fig_per_tone():
-    acc = pd.read_csv(SP / "analysis/per_tone_acc.tsv", sep="\t").set_index("model")
-    f0 = pd.read_csv(SP / "analysis/per_tone_f0.tsv", sep="\t").set_index("model")
+    acc = pd.read_csv(SP / "per_tone_acc.tsv", sep="\t").set_index("model")
+    f0 = pd.read_csv(SP / "per_tone_f0.tsv", sep="\t").set_index("model")
     fig, axes = plt.subplots(2, 1, figsize=(7.0, 4.6))
     x = np.arange(len(TONES))
     n = len(ORDER)
@@ -103,7 +103,7 @@ def fig_per_tone():
         lo = x[j] - 0.44
         hi = x[j] + 0.44
         axes[1].plot([lo, hi], [REAL["per_tone"][j] * 100] * 2, color="black", ls="--", lw=1.0)
-    axes[1].plot([], [], color="black", ls="--", lw=1.0, label="Natural speech (ceiling)")
+    axes[1].plot([], [], color="black", ls="--", lw=1.0, label="Source recordings (ceiling)")
     axes[1].legend(ncol=4, loc="upper right", frameon=False, bbox_to_anchor=(1.0, 1.28))
     axes[0].set_title("Per-tone analysis on 20,000 unseen-voice syllables", loc="left", pad=4)
     fig.tight_layout()
@@ -112,7 +112,7 @@ def fig_per_tone():
 
 def fig_confusion():
     conf_real = np.array(REAL["confusion"], dtype=float)
-    conf = {"Natural speech": conf_real}
+    conf = {"Source recordings": conf_real}
     for name, mdl in [("Baseline", "baseline"), ("+C+B", "plus_cb")]:
         d = json.load(open(f"eval_reports/tone_val_no_overlap_{mdl}_20k.json"))
         conf[name] = np.array(d["confusion"], dtype=float)
@@ -145,7 +145,7 @@ def fig_confusion():
 
 
 def fig_summary():
-    s = pd.read_csv(SP / "analysis/segment_summary.tsv", sep="\t").set_index("model")
+    s = pd.read_csv(SP / "segment_summary.tsv", sep="\t").set_index("model")
     fig, axes = plt.subplots(1, 3, figsize=(7.0, 2.5))
     metrics = [
         ("f0_rmse", "F0 RMSE (Hz) ↓", 1.0),
@@ -170,7 +170,7 @@ def fig_summary():
         ax.errorbar(x, vals, yerr=[vals - los, his - vals], fmt="none", ecolor="#333333", capsize=2, lw=0.9)
         if m == "correct":
             ax.axhline(REAL["real_tone_accuracy"] * 100, color="black", ls="--", lw=1.0)
-            ax.text(0.03, REAL["real_tone_accuracy"] * 100 + 0.15, "natural speech", fontsize=7)
+            ax.text(0.03, REAL["real_tone_accuracy"] * 100 + 0.15, "source recordings", fontsize=7)
             ax.set_ylim(55, 60)
         ax.set_xticks(x)
         ax.set_xticklabels([LABEL[mm].replace(" (ours)", "") for mm in ORDER], rotation=38, ha="right")
@@ -209,7 +209,7 @@ def fig_contours_and_specs():
         x = real.unsqueeze(0).to(device)
         t = None
         for name, color, label in [
-            (None, "black", "Natural"),
+            (None, "black", "Source"),
             ("baseline", COLORS["baseline"], "Baseline"),
             ("plus_cb", COLORS["plus_cb"], "+C+B"),
         ]:
@@ -234,7 +234,7 @@ def fig_contours_and_specs():
     row = picks.iloc[0]
     real = load_segment(row["audio"], float(row["start"]), float(row["end"]), 24000)
     x = real.unsqueeze(0).to(device)
-    sigs = [("Natural", real.numpy())]
+    sigs = [("Source", real.numpy())]
     for name, lbl in [("baseline", "Baseline"), ("plus_cb", "+C+B")]:
         with torch.inference_mode():
             sigs.append((lbl, gens[name](x).float().cpu().squeeze(0).numpy()))

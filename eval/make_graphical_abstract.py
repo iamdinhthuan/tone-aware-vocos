@@ -44,7 +44,7 @@ def inset(x, y, w, h):
 
 
 # ---------- title ----------
-ax.text(6.5, 4.78, "Tone-aware training of a Fourier-based neural vocoder for Vietnamese TTS",
+ax.text(6.5, 4.78, "Tone-aware neural vocoding for tonal languages (Vietnamese case study)",
         ha="center", va="center", fontsize=TITLE_FS, fontweight="bold", color=INK)
 
 PT, PB = 4.35, 0.18   # panel top / bottom
@@ -132,23 +132,24 @@ for s in a3.spines.values():
     s.set_visible(False)
 a3.set_ylim(0, 5.1)
 a3.set_title("F0 RMSE (Hz) ↓", fontsize=SMALL_FS + 0.2, pad=1)
-a3.annotate("−6.5%*\nngã −34.6%", xy=(3.05, 3.42), xytext=(1.85, 4.45), fontsize=SMALL_FS,
+a3.annotate("−6.5%*\nngã −34.6%†", xy=(3.05, 3.42), xytext=(1.85, 4.45), fontsize=SMALL_FS,
             color=VERM, fontweight="bold", ha="center", va="center",
             arrowprops=dict(arrowstyle="->", color=VERM, lw=0.6))
 
 fx = 11.02
 facts = [
-    ("98%", "of natural-speech\ntone accuracy"),
-    ("≈ BigVGAN-v2", "tone accuracy at\n12% of the params"),
+    ("cluster-robust", "F0 gain holds under\nvoice-level bootstrap"),
+    ("> Vocos-EN", "every tone measure,\nsignificant"),
     ("39× / 145×", "faster than BigVGAN-v2\n(GPU / 1 CPU thread)"),
-    ("PESQ ↑", "utterance quality\npreserved"),
+    ("zero cost", "tone-aware training\nremoved at inference"),
 ]
 fy = 3.50
 for head, sub in facts:
     ax.text(fx, fy, head, fontsize=BODY_FS + 0.8, color=VERM, fontweight="bold", va="center")
     ax.text(fx, fy - 0.34, sub, fontsize=SMALL_FS, color=INK, va="center")
     fy -= 0.80
-ax.text(10.90, 0.42, "*paired Wilcoxon + Holm–Bonferroni", ha="center", fontsize=SMALL_FS, color=GRAY)
+ax.text(10.90, 0.50, "*paired Wilcoxon + Holm, cluster-robust", ha="center", fontsize=SMALL_FS, color=GRAY)
+ax.text(10.90, 0.30, "†tail-driven, cluster-marginal", ha="center", fontsize=SMALL_FS, color=GRAY)
 
 # ---------- arrows between panels ----------
 for x0 in (3.54, 8.60):

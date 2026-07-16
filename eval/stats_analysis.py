@@ -1,7 +1,9 @@
 """Statistical analysis for the EAAI paper.
 
-Inputs: peritem_shard*.tsv (internal 4 systems), external_shard*.tsv (2 external systems),
-        utterance_metrics.tsv (6 systems).
+Inputs: segment_peritem_internal.tsv.gz (4 in-house systems),
+        segment_peritem_external.tsv.gz (2 external checkpoints),
+        utterance_metrics_merged.tsv (6 systems).
+The per-item tables carry one repeated header row per concatenated shard; they are filtered out on load.
 Outputs (JSON + markdown-ish TSVs in scratchpad/analysis/):
   - segment_summary.tsv: per-system mean +/- bootstrap 95% CI for each metric
   - segment_stats.tsv: paired Wilcoxon vs chosen references with Holm correction + rank-biserial
@@ -70,10 +72,13 @@ def mcnemar(a: np.ndarray, b: np.ndarray) -> float:
 
 def load_segments() -> pd.DataFrame:
     frames = []
-    for pattern in ["peritem_shard*.tsv", "external_shard*.tsv"]:
+    for pattern in ["segment_peritem_internal.tsv.gz", "segment_peritem_external.tsv.gz"]:
         for f in sorted(SP.glob(pattern)):
-            frames.append(pd.read_csv(f, sep="\t"))
+            frames.append(pd.read_csv(f, sep="\t", low_memory=False))
     df = pd.concat(frames, ignore_index=True)
+    df = df[df["item_idx"] != "item_idx"].copy()  # drop the per-shard header rows
+    for column in ("f0_rmse", "f0_corr", "vuv_error", "correct", "tone"):
+        df[column] = pd.to_numeric(df[column], errors="coerce")
     key = df["audio"] + "|" + df["start"].astype(str) + "|" + df["end"].astype(str)
     df["key"] = key
     return df
@@ -186,7 +191,7 @@ def main() -> None:
     pd.DataFrame(f0_rows).to_csv(OUT / "per_tone_f0.tsv", sep="\t", index=False)
 
     # --- utterance level ---
-    up = SP / "utterance_metrics.tsv"
+    up = SP / "utterance_metrics_merged.tsv"
     if up.exists():
         u = pd.read_csv(up, sep="\t")
         um = ["utmos", "pesq_wb", "estoi", "mcd_db"]
