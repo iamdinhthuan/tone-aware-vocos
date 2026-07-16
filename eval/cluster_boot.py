@@ -1,13 +1,22 @@
 # -*- coding: utf-8 -*-
-"""Voice-level cluster bootstrap for every claim-bearing comparison.
+"""Voice-level cluster bootstrap for the comparisons carrying the paper's primary claims.
 
-Resamples the 80 held-out voices with replacement (2,000 draws) and recomputes the
-mean paired difference, so the reported p-values do not assume the ~20k segments are
-independent. Rewrites the `cluster_boot` block of revision_stats.json.
+Resamples the 80 held-out voices with replacement (2,000 draws) and recomputes the mean
+paired difference, so these p-values do not assume the ~20k segments -- or the 499
+utterances, which come from the same 80 voices -- are independent. Rewrites the
+`cluster_boot` block of revision_stats.json; the other blocks are not regenerated here.
 
-The first eight entries reproduce the original round-1 values bit-for-bit; the rest
-were added so that no claim in the paper rests on an uncorrected-for-clustering test.
-Run order is load-bearing: it fixes the RNG stream.
+Coverage is the enumerated list below, not every test in the paper: comparisons outside
+it are reported with Holm-corrected p-values only. Four of these entries are significant
+per segment yet do not replicate at the voice level (the +C+B+A-vs-+C+B adjacent step on
+F0 RMSE and F0 correlation, and +C's utterance-level ESTOI and MCD); they are reported as
+such rather than dropped.
+
+Note the two-sided statistic can only land on multiples of 2/N_BOOT, so p_boot=0.001 here
+means "at or below the resolution limit", not a point estimate.
+
+The first eight entries reproduce the original round-1 values bit-for-bit. Run order is
+load-bearing: it fixes the RNG stream.
 """
 from __future__ import annotations
 
@@ -113,7 +122,10 @@ def main() -> None:
         print(f"{name:22s} mean={r['mean']:+.6f} CI[{r['lo']:+.4f},{r['hi']:+.4f}] "
               f"p_boot={r['p_boot']:.4f} n={r['n']} G={r['G']}")
 
-    u = pd.read_csv(HERE / "utterance_metrics_merged.tsv", sep="\t")
+    u = pd.read_csv(HERE / "utterance_metrics_merged.tsv", sep="\t", low_memory=False)
+    u = u[u["file"] != "file"].copy()  # same shard-header guard as load()
+    for column in ("utmos", "pesq_wb", "estoi", "mcd_db"):
+        u[column] = pd.to_numeric(u[column], errors="coerce")
     stem = u["file"].str.replace(".flac", "", regex=False)
     u["voice"] = stem.str.split("_", n=1).str[1].str.rsplit("_", n=1).str[0]
     upiv = {
