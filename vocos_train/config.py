@@ -58,6 +58,8 @@ def validate_config(config: dict[str, Any]) -> None:
         raise ValueError("pretrain_mel_steps must be smaller than max_steps")
     if int(training.get("save_top_k_best", 3)) <= 0:
         raise ValueError("save_top_k_best must be positive")
+    if int(training.get("keep_last_checkpoints", 3)) <= 0:
+        raise ValueError("keep_last_checkpoints must be positive")
     if tone_aware.get("use_tone_loss", False):
         checkpoint = Path(tone_aware["tone_classifier_ckpt"])
         if not checkpoint.is_file():
