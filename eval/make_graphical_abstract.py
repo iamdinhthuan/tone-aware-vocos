@@ -44,8 +44,8 @@ def inset(x, y, w, h):
 
 
 # ---------- title ----------
-ax.text(6.5, 4.78, "Tone-aware neural vocoding for tonal languages (Vietnamese case study)",
-        ha="center", va="center", fontsize=TITLE_FS, fontweight="bold", color=INK)
+ax.text(6.5, 4.78, "Tone-aware adversarial training of a Fourier-based neural vocoder for tonal languages",
+        ha="center", va="center", fontsize=TITLE_FS - 0.5, fontweight="bold", color=INK)
 
 PT, PB = 4.35, 0.18   # panel top / bottom
 # ---------- panel 1: problem ----------
