@@ -44,6 +44,18 @@ COMPARISONS = [
     ("f0_cb_vs_c_adj", "f0_rmse", "plus_cb", "plus_c"),
 ]
 
+# Utterance-level claims (Table 5). The 499 utterances come from the same 80 voices,
+# so they need the same treatment as the segments.
+UTTERANCE_COMPARISONS = [
+    ("utt_pesq_cb_vs_base", "pesq_wb", "plus_cb", "baseline"),
+    ("utt_estoi_cb_vs_base", "estoi", "plus_cb", "baseline"),
+    ("utt_estoi_c_vs_base", "estoi", "plus_c", "baseline"),
+    ("utt_mcd_c_vs_base", "mcd_db", "plus_c", "baseline"),
+    ("utt_utmos_cba_vs_base", "utmos", "plus_cba", "baseline"),
+    ("utt_estoi_cba_vs_base", "estoi", "plus_cba", "baseline"),
+    ("utt_mcd_cba_vs_base", "mcd_db", "plus_cba", "baseline"),
+]
+
 
 def load() -> pd.DataFrame:
     frames = [
@@ -99,6 +111,21 @@ def main() -> None:
         out[name] = cluster_boot(piv, voice_of, rng, metric, a, b, keys=keys)
         r = out[name]
         print(f"{name:22s} mean={r['mean']:+.6f} CI[{r['lo']:+.4f},{r['hi']:+.4f}] "
+              f"p_boot={r['p_boot']:.4f} n={r['n']} G={r['G']}")
+
+    u = pd.read_csv(HERE / "utterance_metrics_merged.tsv", sep="\t")
+    stem = u["file"].str.replace(".flac", "", regex=False)
+    u["voice"] = stem.str.split("_", n=1).str[1].str.rsplit("_", n=1).str[0]
+    upiv = {
+        m: u.pivot_table(index="file", columns="model", values=m, aggfunc="first")
+        for m in ("utmos", "pesq_wb", "estoi", "mcd_db")
+    }
+    uvoice = u.drop_duplicates("file").set_index("file")["voice"]
+    rng = np.random.default_rng(SEED)
+    for name, metric, a, b in UTTERANCE_COMPARISONS:
+        out[name] = cluster_boot(upiv, uvoice, rng, metric, a, b)
+        r = out[name]
+        print(f"{name:22s} mean={r['mean']:+.6f} CI[{r['lo']:+.5f},{r['hi']:+.5f}] "
               f"p_boot={r['p_boot']:.4f} n={r['n']} G={r['G']}")
 
     path = HERE / "revision_stats.json"
