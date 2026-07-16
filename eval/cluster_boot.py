@@ -37,6 +37,11 @@ COMPARISONS = [
     ("f0_cb_vs_bigvgan", "f0_rmse", "plus_cb", "bigvgan_v2"),
     ("f0_base_vs_bigvgan", "f0_rmse", "baseline", "bigvgan_v2"),
     ("vuv_cb_vs_bigvgan", "vuv_error", "plus_cb", "bigvgan_v2"),
+    # Adjacent ablation steps. These carry the component-A regression claim, so they
+    # belong here even though they are the ones that do not survive the check.
+    ("f0_cba_vs_cb_adj", "f0_rmse", "plus_cba", "plus_cb"),
+    ("f0corr_cba_vs_cb_adj", "f0_corr", "plus_cba", "plus_cb"),
+    ("f0_cb_vs_c_adj", "f0_rmse", "plus_cb", "plus_c"),
 ]
 
 
@@ -70,9 +75,11 @@ def cluster_boot(piv, voice_of, rng, metric, a, b, keys=None):
         means[i] = np.concatenate([groups[j] for j in pick]).mean()
     lo, hi = np.percentile(means, [2.5, 97.5])
     p_boot = float(2 * min((means >= 0).mean(), (means <= 0).mean()))
+    # The two-sided statistic can only land on multiples of 2/N_BOOT, so that -- not
+    # 1/N_BOOT -- is the smallest positive value it can express.
     return dict(
         mean=float(d.mean()), lo=float(lo), hi=float(hi),
-        p_boot=max(p_boot, 1.0 / N_BOOT), G=n_groups, n=int(mask.sum()),
+        p_boot=max(p_boot, 2.0 / N_BOOT), G=n_groups, n=int(mask.sum()),
     )
 
 
