@@ -27,6 +27,9 @@ import numpy as np
 import pandas as pd
 
 HERE = Path(__file__).resolve().parent
+# The released repository keeps the shipped tables in <repo>/results and the scripts in
+# <repo>/eval; the paper's own tree keeps both side by side. Resolve whichever applies.
+DATA = HERE.parent / "results" if (HERE.parent / "results").is_dir() else HERE
 SEED = 20260706
 N_BOOT = 2000
 
@@ -68,8 +71,8 @@ UTTERANCE_COMPARISONS = [
 
 def load() -> pd.DataFrame:
     frames = [
-        pd.read_csv(HERE / "segment_peritem_internal.tsv.gz", sep="\t", low_memory=False),
-        pd.read_csv(HERE / "segment_peritem_external.tsv.gz", sep="\t", low_memory=False),
+        pd.read_csv(DATA / "segment_peritem_internal.tsv.gz", sep="\t", low_memory=False),
+        pd.read_csv(DATA / "segment_peritem_external.tsv.gz", sep="\t", low_memory=False),
     ]
     df = pd.concat(frames, ignore_index=True)
     df = df[df["item_idx"] != "item_idx"].copy()
@@ -122,7 +125,7 @@ def main() -> None:
         print(f"{name:22s} mean={r['mean']:+.6f} CI[{r['lo']:+.4f},{r['hi']:+.4f}] "
               f"p_boot={r['p_boot']:.4f} n={r['n']} G={r['G']}")
 
-    u = pd.read_csv(HERE / "utterance_metrics_merged.tsv", sep="\t", low_memory=False)
+    u = pd.read_csv(DATA / "utterance_metrics_merged.tsv", sep="\t", low_memory=False)
     u = u[u["file"] != "file"].copy()  # same shard-header guard as load()
     for column in ("utmos", "pesq_wb", "estoi", "mcd_db"):
         u[column] = pd.to_numeric(u[column], errors="coerce")
@@ -140,7 +143,7 @@ def main() -> None:
         print(f"{name:22s} mean={r['mean']:+.6f} CI[{r['lo']:+.5f},{r['hi']:+.5f}] "
               f"p_boot={r['p_boot']:.4f} n={r['n']} G={r['G']}")
 
-    path = HERE / "revision_stats.json"
+    path = DATA / "revision_stats.json"
     stats = json.loads(path.read_text())
     stats["cluster_boot"] = out
     path.write_text(json.dumps(stats, indent=1) + "\n")

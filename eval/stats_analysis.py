@@ -43,7 +43,11 @@ def rng_for(key: str) -> np.random.Generator:
 
 
 def bootstrap_ci(values: np.ndarray, key: str, n_boot: int = 2000) -> tuple[float, float, float]:
-    values = values[np.isfinite(values)]
+    # Sorted, so the interval depends on the multiset of values and not on the order the
+    # rows happened to arrive in. Resampling a mean is exchangeable, so this leaves the
+    # estimator untouched, but it keeps the released voice-anonymized tables -- whose keys
+    # sort differently from the internal ones -- in exact agreement with the paper.
+    values = np.sort(values[np.isfinite(values)])
     mean = float(values.mean())
     idx = rng_for(key).integers(0, len(values), size=(n_boot, len(values)))
     boots = values[idx].mean(axis=1)
