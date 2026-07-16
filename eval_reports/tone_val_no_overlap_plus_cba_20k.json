@@ -1,0 +1,81 @@
+{
+  "checkpoint": "checkpoints/ablations/plus_cba/best.pt",
+  "tone_manifest": "manifests/tone_eval_val_no_overlap.tsv",
+  "manifest_items": 205282,
+  "max_items": 20000,
+  "selected_items": 20000,
+  "num_shards": 4,
+  "shuffle": true,
+  "seed": 20260706,
+  "items": 20000,
+  "tone_accuracy": 0.57365,
+  "confusion": [
+    [
+      5319,
+      238,
+      285,
+      41,
+      23,
+      182
+    ],
+    [
+      1685,
+      2378,
+      50,
+      101,
+      50,
+      72
+    ],
+    [
+      1794,
+      118,
+      1207,
+      131,
+      36,
+      365
+    ],
+    [
+      513,
+      190,
+      136,
+      725,
+      43,
+      216
+    ],
+    [
+      185,
+      85,
+      5,
+      64,
+      390,
+      92
+    ],
+    [
+      1401,
+      91,
+      88,
+      167,
+      80,
+      1454
+    ]
+  ],
+  "f0_rmse": 3.4017597511050894,
+  "f0_corr": 0.934113744633865,
+  "vuv_error": 0.06333332234710722,
+  "metric_sums": {
+    "f0_rmse": 59952.6138534761,
+    "f0_corr": 16420.785516918713,
+    "vuv_error": 1266.6664469421444
+  },
+  "metric_counts": {
+    "f0_rmse": 17624,
+    "f0_corr": 17579,
+    "vuv_error": 20000
+  },
+  "shards": [
+    "tone_val_no_overlap_plus_cba_20k_shard00of04.json",
+    "tone_val_no_overlap_plus_cba_20k_shard01of04.json",
+    "tone_val_no_overlap_plus_cba_20k_shard02of04.json",
+    "tone_val_no_overlap_plus_cba_20k_shard03of04.json"
+  ]
+}

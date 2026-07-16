@@ -20,7 +20,10 @@ mfa_corpus/
 mfa_aligned/
 mfa_tmp*/
 ttscond_mfa_*/
-eval_reports/
+# Exclude the bulk eval outputs, but ship the four aggregate tone reports behind
+# Figure 7 (confusion matrices only -- no audio, no voice names, ~4 KB each).
+eval_reports/*
+!eval_reports/tone_val_no_overlap_*_20k.json
 eval_samples/
 listening_test/
 human_eval_*/

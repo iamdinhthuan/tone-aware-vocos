@@ -8,6 +8,11 @@ MFA_JOBS="${MFA_JOBS:-3}"
 MAX_ITEMS="${MAX_ITEMS:-20000}"
 DEVICE="${DEVICE:-cuda}"
 
+# The paper's baseline is the vocos_mp3 run (configs/vocos_mp3.yaml). Retraining it from
+# configs/ablations/baseline.yaml writes elsewhere, so override this to point at your own:
+#   BASELINE_CKPT=checkpoints/ablations/baseline/best.pt ./run_val_tone_eval.sh
+BASELINE_CKPT="${BASELINE_CKPT:-checkpoints/vocos_mp3/best.pt}"
+
 CORPUS_DIR="mfa_corpus/vi_val10k"
 ALIGN_DIR="mfa_aligned/vi_val10k"
 TONE_MANIFEST="manifests/tone_eval_val.tsv"
@@ -48,7 +53,7 @@ python evaluate_tone_vocos_set.py \
   --output-prefix tone_val \
   --max-items "$MAX_ITEMS" \
   --device "$DEVICE" \
-  --checkpoint baseline=checkpoints/vocos_mp3/best.pt \
+  --checkpoint baseline="$BASELINE_CKPT" \
   --checkpoint plus_c=checkpoints/ablations/plus_c/best.pt \
   --checkpoint plus_cb=checkpoints/ablations/plus_cb/best.pt \
   --checkpoint plus_cba=checkpoints/ablations/plus_cba/best.pt 2>&1 | tee "$EVAL_LOG"

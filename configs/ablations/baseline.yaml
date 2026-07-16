@@ -1,3 +1,16 @@
+# Baseline (no tone-aware terms) — reproduction recipe.
+#
+# The baseline reported in the paper was NOT trained from this file: it is the vocos_mp3
+# run (configs/vocos_mp3.yaml), whose artifact is checkpoints/vocos_mp3/best.pt. That run
+# predates the ablation series and was resumed twice; because the trainer does not
+# checkpoint the loader position, its batch order after step 10,000 differs from the three
+# tone-aware runs, which each trained in a single pass. The paper records this.
+#
+# This file is identical to configs/vocos_mp3.yaml apart from output_dir/log_dir, and
+# exists so all four runs can be launched uniformly. If you train it, point the evaluation
+# at your own checkpoint:
+#   BASELINE_CKPT=checkpoints/ablations/baseline/best.pt ./run_val_tone_eval.sh
+
 seed: 4444
 
 data:

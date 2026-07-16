@@ -13,6 +13,7 @@ McNemar test for paired binary tone-correctness.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -20,18 +21,31 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-SP = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent
+# The released repository keeps the shipped tables in <repo>/results and the scripts in
+# <repo>/eval; the paper's own tree keeps both side by side. Resolve whichever applies, so
+# one copy of this file works in both and the two cannot drift apart.
+SP = HERE.parent / "results" if (HERE.parent / "results").is_dir() else HERE
 OUT = SP / "analysis"
 OUT.mkdir(exist_ok=True)
 
-RNG = np.random.default_rng(20260706)
+BASE_SEED = 20260706
 TONES = ["ngang", "sac", "huyen", "hoi", "nga", "nang"]
 
 
-def bootstrap_ci(values: np.ndarray, n_boot: int = 2000) -> tuple[float, float, float]:
+def rng_for(key: str) -> np.random.Generator:
+    """A generator determined solely by `key`, so an interval never depends on how many
+    other intervals were drawn before it. A shared module-level generator would make every
+    CI a function of call order, and reordering or adding a system would silently move
+    intervals that had already been published."""
+    digest = hashlib.blake2b(key.encode("utf-8"), digest_size=8).digest()
+    return np.random.default_rng([BASE_SEED, int.from_bytes(digest, "little")])
+
+
+def bootstrap_ci(values: np.ndarray, key: str, n_boot: int = 2000) -> tuple[float, float, float]:
     values = values[np.isfinite(values)]
     mean = float(values.mean())
-    idx = RNG.integers(0, len(values), size=(n_boot, len(values)))
+    idx = rng_for(key).integers(0, len(values), size=(n_boot, len(values)))
     boots = values[idx].mean(axis=1)
     lo, hi = np.percentile(boots, [2.5, 97.5])
     return mean, float(lo), float(hi)
@@ -105,7 +119,7 @@ def main() -> None:
             continue
         row = {"model": s, "n": int(wide["correct"][s].notna().sum())}
         for m in metrics:
-            mean, lo, hi = bootstrap_ci(wide[m][s].to_numpy(dtype=float))
+            mean, lo, hi = bootstrap_ci(wide[m][s].to_numpy(dtype=float), key=f"segment|{s}|{m}")
             row[m] = mean
             row[f"{m}_lo"], row[f"{m}_hi"] = lo, hi
         rows.append(row)
@@ -204,7 +218,7 @@ def main() -> None:
                 continue
             row = {"model": s, "n": int(uw["utmos"][s].notna().sum())}
             for m in um:
-                mean, lo, hi = bootstrap_ci(uw[m][s].to_numpy(dtype=float))
+                mean, lo, hi = bootstrap_ci(uw[m][s].to_numpy(dtype=float), key=f"utterance|{s}|{m}")
                 row[m], row[f"{m}_lo"], row[f"{m}_hi"] = mean, lo, hi
             urows.append(row)
         pd.DataFrame(urows).to_csv(OUT / "utterance_summary.tsv", sep="\t", index=False)

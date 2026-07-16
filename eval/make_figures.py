@@ -1,9 +1,12 @@
-"""Publication figures for the EAAI paper. Writes PDF+PNG into /data_nvme/vocos_training/paper/figures.
+"""Publication figures for the EAAI paper. Writes PDF+PNG into the sibling figures/ directory.
 
 Palette validated with dataviz validator (Okabe-Ito subset):
   Vocos-EN #E69F00 (hatch), BigVGAN-v2 #009E73 (hatch),
   baseline #0072B2, +C #56B4E9, +C+B #D55E00 (hero), +C+B+A #CC79A7.
-Run from /data_nvme/vocos_training with py310.
+
+Runnable from any working directory. fig_per_tone, fig_confusion and fig_summary need only
+the shipped tables; fig_contours/fig_spectrogram additionally need the vocoder weights and
+the source corpus, and are skipped when those are absent.
 """
 from __future__ import annotations
 
@@ -19,9 +22,33 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-SP = Path(__file__).resolve().parent
-FIG = Path("/data_nvme/vocos_training/paper/figures")
+HERE = Path(__file__).resolve().parent
+
+
+def _ancestor_with(name: str):
+    """First directory at or above this script that contains `name`, else None."""
+    for base in (HERE, *HERE.parents):
+        if (base / name).exists():
+            return base
+    return None
+
+
+# The released repository keeps the shipped tables in <repo>/results and the scripts in
+# <repo>/eval; the paper's own tree keeps both side by side. Resolve whichever applies, so
+# one copy of this file works in both and the two cannot drift apart.
+SP = HERE.parent / "results" if (HERE.parent / "results").is_dir() else HERE
+FIG = HERE.parent / "figures"
 FIG.mkdir(parents=True, exist_ok=True)
+
+REPO = _ancestor_with("evaluate_tone_vocos_set.py")
+_reports_root = _ancestor_with("eval_reports")
+EVAL_REPORTS = _reports_root / "eval_reports" if _reports_root else None
+
+# Only these two figures need the vocoder weights, which are released separately from the
+# repository; every other figure regenerates from the shipped tables alone.
+_ckpt_root = _ancestor_with("checkpoints")
+CONTOUR_CKPTS = [("baseline", _ckpt_root / "checkpoints/vocos_mp3/best.pt"),
+                 ("plus_cb", _ckpt_root / "checkpoints/ablations/plus_cb/best.pt")] if _ckpt_root else []
 
 plt.rcParams.update(
     {
@@ -114,7 +141,10 @@ def fig_confusion():
     conf_real = np.array(REAL["confusion"], dtype=float)
     conf = {"Source recordings": conf_real}
     for name, mdl in [("Baseline", "baseline"), ("+C+B", "plus_cb")]:
-        d = json.load(open(f"eval_reports/tone_val_no_overlap_{mdl}_20k.json"))
+        if EVAL_REPORTS is None:
+            raise FileNotFoundError("fig_confusion needs the eval_reports/ tone reports")
+        with open(EVAL_REPORTS / f"tone_val_no_overlap_{mdl}_20k.json") as fh:
+            d = json.load(fh)
         conf[name] = np.array(d["confusion"], dtype=float)
     fig, axes = plt.subplots(1, 3, figsize=(7.0, 2.55))
     for ax, (title, C) in zip(axes, conf.items()):
@@ -184,18 +214,22 @@ def fig_contours_and_specs():
     import torch
     import librosa
 
-    sys.path.insert(0, "/data_nvme/vocos_training")
+    sys.path.insert(0, str(REPO))
     from evaluate_tone_vocos import load_segment
     from evaluate_tone_vocos_set import load_generator, extract_f0
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     gens = {}
-    for name, path in [("baseline", "checkpoints/vocos_mp3/best.pt"), ("plus_cb", "checkpoints/ablations/plus_cb/best.pt")]:
-        gens[name], _ = load_generator(path, device)
+    for name, path in CONTOUR_CKPTS:
+        gens[name], _ = load_generator(str(path), device)
 
     # pick nga/nang segments where +CB clearly improves over baseline
-    frames = [pd.read_csv(f, sep="\t") for f in sorted(SP.glob("peritem_shard*.tsv"))]
+    frames = [pd.read_csv(SP / name, sep="\t", low_memory=False)
+              for name in ("segment_peritem_internal.tsv.gz", "segment_peritem_external.tsv.gz")]
     df = pd.concat(frames, ignore_index=True)
+    df = df[df["item_idx"] != "item_idx"].copy()  # drop the per-shard header rows
+    for column in ("f0_rmse", "start", "end", "tone"):
+        df[column] = pd.to_numeric(df[column], errors="coerce")
     df["dur"] = df["end"] - df["start"]
     piv = df.pivot_table(index=["audio", "start", "end", "tone", "dur"], columns="model", values="f0_rmse").reset_index()
     cand = piv[(piv["tone"].isin([4, 5])) & (piv["dur"] >= 0.30) & piv["baseline"].notna() & piv["plus_cb"].notna()]
@@ -205,7 +239,7 @@ def fig_contours_and_specs():
     fig, axes = plt.subplots(1, 3, figsize=(7.0, 2.3))
     hop_t = 256 / 24000
     for ax, (_, row) in zip(axes, picks.iterrows()):
-        real = load_segment(row["audio"], float(row["start"]), float(row["end"]), 24000)
+        real = load_segment(str(REPO / row["audio"]), float(row["start"]), float(row["end"]), 24000)
         x = real.unsqueeze(0).to(device)
         t = None
         for name, color, label in [
@@ -232,7 +266,7 @@ def fig_contours_and_specs():
 
     # spectrogram close-up of the top pick
     row = picks.iloc[0]
-    real = load_segment(row["audio"], float(row["start"]), float(row["end"]), 24000)
+    real = load_segment(str(REPO / row["audio"]), float(row["start"]), float(row["end"]), 24000)
     x = real.unsqueeze(0).to(device)
     sigs = [("Source", real.numpy())]
     for name, lbl in [("baseline", "Baseline"), ("plus_cb", "+C+B")]:
@@ -258,4 +292,8 @@ if __name__ == "__main__":
     fig_per_tone()
     fig_confusion()
     fig_summary()
-    fig_contours_and_specs()
+    if CONTOUR_CKPTS and all(path.exists() for _, path in CONTOUR_CKPTS):
+        fig_contours_and_specs()
+    else:
+        print("skipping fig_contours/fig_spectrogram: needs the vocoder weights, which are "
+              "released separately from the repository")
