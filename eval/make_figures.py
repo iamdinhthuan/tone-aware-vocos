@@ -37,6 +37,14 @@ def _ancestor_with(name: str):
 # <repo>/eval; the paper's own tree keeps both side by side. Resolve whichever applies, so
 # one copy of this file works in both and the two cannot drift apart.
 SP = HERE.parent / "results" if (HERE.parent / "results").is_dir() else HERE
+
+# stats_analysis.py writes its regenerated summaries into <data>/analysis/. Prefer those, so a
+# reproducer's figures show the reproducer's own numbers; without this the figures silently
+# rendered the shipped tables no matter what was recomputed, which makes any comparison against
+# the paper vacuous. Only the summaries move -- real_acc.json and the per-item tables have no
+# regenerated counterpart and always come from SP.
+TABLES = SP / "analysis" if (SP / "analysis" / "segment_summary.tsv").exists() else SP
+print(f"tables: {TABLES}" + ("  (regenerated)" if TABLES != SP else "  (shipped; run stats_analysis.py to regenerate)"))
 FIG = HERE.parent / "figures"
 FIG.mkdir(parents=True, exist_ok=True)
 
@@ -93,15 +101,18 @@ REAL = json.load(open(SP / "real_acc.json"))
 
 
 def save(fig, name):
-    fig.savefig(FIG / f"{name}.pdf", bbox_inches="tight")
+    # dpi matters for the PDF too: vector content ignores it, but imshow/pcolormesh are
+    # embedded as rasters at exactly this resolution. Without it matplotlib uses 100, below
+    # the 300 dpi Elsevier requires of halftones.
+    fig.savefig(FIG / f"{name}.pdf", bbox_inches="tight", dpi=300)
     fig.savefig(FIG / f"{name}.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
     print("saved", name)
 
 
 def fig_per_tone():
-    acc = pd.read_csv(SP / "per_tone_acc.tsv", sep="\t").set_index("model")
-    f0 = pd.read_csv(SP / "per_tone_f0.tsv", sep="\t").set_index("model")
+    acc = pd.read_csv(TABLES / "per_tone_acc.tsv", sep="\t").set_index("model")
+    f0 = pd.read_csv(TABLES / "per_tone_f0.tsv", sep="\t").set_index("model")
     fig, axes = plt.subplots(2, 1, figsize=(7.0, 4.6))
     x = np.arange(len(TONES))
     n = len(ORDER)
@@ -175,7 +186,7 @@ def fig_confusion():
 
 
 def fig_summary():
-    s = pd.read_csv(SP / "segment_summary.tsv", sep="\t").set_index("model")
+    s = pd.read_csv(TABLES / "segment_summary.tsv", sep="\t").set_index("model")
     fig, axes = plt.subplots(1, 3, figsize=(7.0, 2.5))
     metrics = [
         ("f0_rmse", "F0 RMSE (Hz) ↓", 1.0),
